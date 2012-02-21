@@ -1,0 +1,47 @@
+void GeometryStageVS(
+				float4 position : POSITION,				// Position (object space)
+				float3 normal : NORMAL,					// Normal (object space)
+				float2 texCoord : TEXCOORD0,			// Texture coordinates
+			out float4 oPosition : POSITION,
+			out float2 oTexCoord : TEXCOORD0,
+			out float4 oNormal : TEXCOORD1,
+		uniform float4x4 modelViewProj
+		)
+{
+	// Vertex position in object space
+	float4 pos = float4(position.x,position.y,position.z,1.0);
+
+	// Vertex position in clip space
+	oPosition = mul(modelViewProj,pos);
+
+	// Pipe texture coordinates
+	oTexCoord = texCoord;
+
+	// Normals in object space
+	float4 N = float4(normal.x,normal.y,normal.z,1.0);
+
+	// Normals in clip space
+	oNormal = mul(modelViewProj,N);
+}
+
+void GeometryStageFS(
+					float4 pos : POSITION,				// Position (clip space)
+					float2 texCoord : TEXCOORD0,		// Texture coordinate
+					float4 normal : TEXCOORD1,			// Surface normal (view space)
+				out float3 oDiffuse : COLOR0,			// diffuse
+				out float3 oNormal : COLOR1,			// normal
+				out float4 oSpecular : COLOR2,			// specular
+		uniform sampler2D normaltex,
+		uniform sampler2D colortex,
+		uniform float4 diffuse,
+		uniform float4 specular
+		)
+{
+	float3 N = tex2D(normaltex, texCoord);
+	float3 color  = tex2D(colortex, texCoord);
+	N = normalize(normal);
+
+	oDiffuse = color;
+	oNormal = N;
+	oSpecular = specular;
+}

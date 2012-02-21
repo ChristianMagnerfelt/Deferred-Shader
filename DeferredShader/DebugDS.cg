@@ -1,0 +1,22 @@
+
+
+void DebugVP(
+			float2 position : POSITION,
+			float2 texCoord : TEXCOORD0,
+		out float4 oPosition : POSITION,
+		out float2 oTexCoord : TEXCOORD0,
+		uniform float4x4 modelViewProj
+	)
+{
+	oPosition = mul(modelViewProj, float4(position.x,position.y,0.0,1.0));
+	oTexCoord = texCoord;
+}
+
+void DebugFP(
+			float2 texCoord : TEXCOORD0,
+			uniform sampler2D gbTex,
+		out float3 color : COLOR0
+	)
+{
+	color = /**float3(0.0,1.0,0.0)*0.5 + **/tex2D(gbTex,texCoord);
+}
