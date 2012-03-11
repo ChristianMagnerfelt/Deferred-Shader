@@ -10,7 +10,7 @@
 #include "ContentManager.h"
 #include "Scene.h"
 #include "Camera.h"
-#include "StateHandler.h"
+#include "StateManager.h"
 
 #define SCREEN_HEIGHT	600
 #define SCREEN_WIDTH	800
@@ -40,10 +40,10 @@ class GlutWindow
 		void mouseMove(int x, int y);
 	private:
 		Camera			camera;
+		StateManager	stateManager;
 		DeferredShader	deferredShader;
 		ContentManager	contentManager;
 		Scene			scene;
-		StateHandler	stateHandler;
 };
 
 static GlutWindow * gGlutWindow;

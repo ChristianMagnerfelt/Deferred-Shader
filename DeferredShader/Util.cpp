@@ -6,13 +6,24 @@ void checkFramebufferEXTSupport()
 {
 	if (GLEW_EXT_framebuffer_object)
 	{
-		cout << "FBO EXT Supported" << endl;
+		std::cout << "FBO EXT Supported" << std::endl;
 	}
 	else
 	{
-		cerr << "FBO EXT is not supported" << endl;
+		std::cerr << "FBO EXT is not supported" << std::endl;
 		//system("pause");
 		//system("exit");
+	}
+}
+void checkVertexBufferEXTSupport()
+{
+	if (GLEW_ARB_vertex_buffer_object)
+	{
+		std::cout << "VBO EXT Supported" << std::endl;
+	}
+	else
+	{
+		std::cerr << "VBO EXT is not supported" << std::endl;
 	}
 }
 void checkFramebufferStatus(){
@@ -23,17 +34,17 @@ void checkFramebufferStatus(){
 			//GBuffer bind OK
 			break;
 		case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-			cerr << "FBO Error : Framebuffer configuration not supported" << endl;
+			std::cerr << "FBO Error : Framebuffer configuration not supported" << std::endl;
 			break;
 		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-			cerr << "FBO Error : Incomplete attachment" << endl;
+			std::cerr << "FBO Error : Incomplete attachment" << std::endl;
 			break;
 		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
-			cerr << "FBO Error : Incomplete missing attachment" << endl;
+			std::cerr << "FBO Error : Incomplete missing attachment" << std::endl;
 			break;
 		default:
 			//Error
-			cerr << "FBO Error : " << status << endl;
+			std::cerr << "FBO Error : " << status << std::endl;
 	}
 }
 
@@ -46,16 +57,16 @@ void checkGLErrors(const char * action)
 			// OK
 			break;
 		case GL_INVALID_ENUM:
-			cerr << action << " : An unacceptable value is specified for an enumerated argument" << endl;
+			std::cerr << action << " : An unacceptable value is specified for an enumerated argument" << std::endl;
 			break;
 		case GL_INVALID_OPERATION:
-			cerr << action << " : The specified operation is not allowed in the current state" << endl;
+			std::cerr << action << " : The specified operation is not allowed in the current state" << std::endl;
 			break;
 		case GL_STACK_OVERFLOW:
-			cerr << action << " : Stack Overflow" << endl;
+			std::cerr << action << " : Stack Overflow" << std::endl;
 			break;
 		default:
-			cerr << action << " : GL error " << status << endl;
+			std::cerr << action << " : GL error " << status << std::endl;
 	}
 
 }

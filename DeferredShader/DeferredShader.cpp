@@ -1,19 +1,19 @@
 #include "DeferredShader.h"
 
-#include "StateHandler.h"
+#include "StateManager.h"
 
-DeferredShader::DeferredShader() : screenWidth(0), screenHeight(0), initOK(false)
+DeferredShader::DeferredShader(StateManager & manager) : stateManager(manager), shaderManager(manager)
 {}
 DeferredShader::~DeferredShader()
 {
 	cleanUp();
 }
-void DeferredShader::init(GLuint screenW, GLuint screenH)	
+void DeferredShader::init(Camera & camera)	
 {
-	screenWidth = screenW;
-	screenHeight = screenH;
-	cout << "Buffer dimensions : " << screenWidth << " x " << screenHeight << endl; 
-	
+	GLsizei screenWidth = camera.getScreenWidth();
+	GLsizei screenHeight = camera.getScreenHeight();
+	std::cout << "Buffer dimensions : " << screenWidth << " x " << screenHeight << std::endl;
+
 	// Init G-Buffer
 	checkFramebufferEXTSupport();	
 
@@ -24,7 +24,7 @@ void DeferredShader::init(GLuint screenW, GLuint screenH)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, screenWidth, screenHeight, 0,
              GL_RGB, GL_UNSIGNED_BYTE, 0);
-	cout << "GbDiffuse Tex : " << gbDiffuse << endl;
+	std::cout << "GbDiffuse Tex : " << gbDiffuse << std::endl;
 
 	// Create texture to store normal data
 	glGenTextures(1, &gbNormal);
@@ -33,7 +33,7 @@ void DeferredShader::init(GLuint screenW, GLuint screenH)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, screenWidth, screenHeight, 0,
              GL_RGB, GL_UNSIGNED_BYTE, 0);
-	cout << "GbNormal Tex : " << gbNormal << endl;
+	std::cout << "GbNormal Tex : " << gbNormal << std::endl;
 
 	// Create texture to store specular data
 	glGenTextures(1, &gbSpecular);
@@ -42,7 +42,7 @@ void DeferredShader::init(GLuint screenW, GLuint screenH)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screenWidth, screenHeight, 0,		// Specular data includes specular r,g,b and shininess component
              GL_RGBA, GL_UNSIGNED_BYTE, 0);
-	cout << "GbSpecular Tex : " << gbSpecular << endl;
+	std::cout << "GbSpecular Tex : " << gbSpecular << std::endl;
 	
 	// Create depth texture
 	glGenTextures(1, &gbDepth);
@@ -51,7 +51,7 @@ void DeferredShader::init(GLuint screenW, GLuint screenH)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, screenWidth, screenHeight, 0,		// 24 bit depth texture format
              GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	cout << "GbDepth Tex : " << gbDepth << endl;
+	std::cout << "GbDepth Tex : " << gbDepth << std::endl;
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	// Create FBO
@@ -59,6 +59,7 @@ void DeferredShader::init(GLuint screenW, GLuint screenH)
 	checkGLErrors("Generate FBO");
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 	checkGLErrors("Bind FBO");
+	std::cout << "FBO ID: " << fbo << std::endl;
 
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
                           GL_TEXTURE_2D, gbDepth, 0);
@@ -91,18 +92,17 @@ void DeferredShader::cleanUp()
 {
 	glDeleteFramebuffersEXT(1, &fbo);
 }
-void DeferredShader::draw(Scene & scene, Camera & camera, StateHandler & stateHandler)
+void DeferredShader::draw(Scene & scene, Camera & camera)
 {
 	geometryStage(scene,camera);
-	if(stateHandler.getDebugState() != NO_DEBUG){ debugStage(camera,stateHandler);}
-	lightingStage(scene,camera);
+	if(stateManager.getDebugState() != StateManager::NO_DEBUG){ debugStage(camera);}
+	//lightingStage(scene,camera);
 }
 void DeferredShader::bindGBuffer()
 {
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);			// Bind FBO
 	checkGLErrors("Binding FBO");							
 	checkFramebufferStatus();								// Check that framebuffer config OK
-	shaderManager.bindGeometryStageShader();				// Bind geometry stage shaders 
 }
 void DeferredShader::unbindGBuffer()
 {
@@ -118,8 +118,12 @@ void DeferredShader::unbindPBuffer()
 }
 void DeferredShader::geometryStage(Scene & scene, Camera & camera)
 {
+	stateManager.setRenderingStage(StateManager::GEOMETRY_STAGE);
+
 	bindGBuffer();											// Bind G-Buffer for rendering
-	
+
+	shaderManager.bindGeometryStageShader();				// Bind geometry stage shaders
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		// Clear color & depth bit
 	glCullFace(GL_BACK);									// Set culling method			
 	glEnable(GL_CULL_FACE);									// Enable face culling
@@ -128,10 +132,9 @@ void DeferredShader::geometryStage(Scene & scene, Camera & camera)
 	glEnable(GL_DEPTH_TEST);								// Enable Z-Buffer
 	glDisable(GL_TEXTURE_2D);								// Disable textures
 
-	camera.mouseMove(screenWidth,screenHeight);				// Update mouse movement
+	camera.mouseMove();										// Update mouse movement
 	camera.setGLProjection();								// Set up Projection Matrix
 	camera.setGLModelView();								// Set up Modelview Matrix
-
 
 	scene.draw(shaderManager);								// Draw scene
 
@@ -141,27 +144,32 @@ void DeferredShader::drawLights()
 {
 
 }
-void DeferredShader::debugStage(Camera & camera, StateHandler & stateHandler)
+void DeferredShader::debugStage(Camera & camera)
 {
+	stateManager.setRenderingStage(StateManager::DEBUG_STAGE);
+
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);			// Debug
 	checkGLErrors("Bind framebuffer");
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_CULL_FACE);								// Disable Cull Face
 	glDisable(GL_DEPTH_TEST);								// Disable Z-Buffer
+	
 	shaderManager.bindDebugShader();
-	if(stateHandler.getDebugState() == DIFFUSE_BUFFER)
+
+	if(stateManager.getDebugState() == StateManager::DIFFUSE_BUFFER)
 	{
 		shaderManager.bindCGTexture(gbDiffuse,GB_DEBUG);
 	}
-	else if(stateHandler.getDebugState() == NORMAL_BUFFER)
+	else if(stateManager.getDebugState() == StateManager::NORMAL_BUFFER)
 	{
 		shaderManager.bindCGTexture(gbNormal,GB_DEBUG);
 	}
-	else if(stateHandler.getDebugState() == SPECULAR_BUFFER)
+	else if(stateManager.getDebugState() == StateManager::SPECULAR_BUFFER)
 	{
 		shaderManager.bindCGTexture(gbSpecular,GB_DEBUG);
 	}
-	else if(stateHandler.getDebugState() == DEPTH_BUFFER)
+	else if(stateManager.getDebugState() == StateManager::DEPTH_BUFFER)
 	{
 		shaderManager.bindCGTexture(gbDepth,GB_DEBUG);
 	}
@@ -169,9 +177,9 @@ void DeferredShader::debugStage(Camera & camera, StateHandler & stateHandler)
 }
 void DeferredShader::lightingStage(Scene & scene, Camera & camera)
 {
+	stateManager.setRenderingStage(StateManager::LIGHTING_STAGE);
 	bindPBuffer();
-	glm::vec3 v (1,2,3);
-	cout << v.x << v.y << v.z << endl;
+
 	unbindPBuffer();
 }
 void DeferredShader::drawAmbient()
@@ -197,8 +205,8 @@ void DeferredShader::drawRec(Camera & camera)
 	
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();
-			
-	shaderManager.updateModelviewPerspectiveMatrix(DEBUG_STAGE);
+
+	shaderManager.updateModelviewPerspectiveMatrix();
 
 	// Draw full screen rectangle
 	glBegin(GL_QUADS);
@@ -213,7 +221,7 @@ void DeferredShader::drawRec(Camera & camera)
 	glEnd();
 }
 
-int DeferredShader::lightScissorTest(const Float3 & position, float radius, int sx, int sy, Camera & camera)
+int DeferredShader::lightScissorTest(const glm::vec3 & position, float radius, int sx, int sy, Camera & camera)
 {
 	int rect[4]={ 0,0,sx,sy };						// Set scissor rectangle equal to whole viewplane
 	float d;
@@ -221,10 +229,10 @@ int DeferredShader::lightScissorTest(const Float3 & position, float radius, int 
 	float r = radius;									// Get radius of light source
 	float r2 = r*r;
 
-	Float3 l = position;
-	Float3 l2 = l.dot(l);
+	glm::vec3 l = position;
+	glm::vec3 l2 = glm::sqrt(l);
 	float e1=1.2f;
-	float e2=1.2f*camera.aspect;
+	float e2=1.2f*camera.getAspectRatio();
 
 	d=r2*l2.x - (l2.x+l2.z)*(r2-l2.z);
 	if (d>=0)
@@ -238,7 +246,7 @@ int DeferredShader::lightScissorTest(const Float3 & position, float radius, int 
 		float nz2=(r-nx2*l.x)/l.z;
 
 		float e=1.25f;
-		float a=camera.aspect;
+		float a=camera.getAspectRatio();
 
 		float pz1=(l2.x+l2.z-r2)/(l.z-(nz1/nx1)*l.x);
 		float pz2=(l2.x+l2.z-r2)/(l.z-(nz2/nx2)*l.x);
@@ -251,11 +259,11 @@ int DeferredShader::lightScissorTest(const Float3 & position, float radius, int 
 			float px=-pz1*nz1/nx1;
 			if (px<l.x)
 			{
-				rect[0]=max(rect[0],ix);
+				rect[0]=std::max(rect[0],ix);
 			}
 			else
 			{
-				rect[2]=min(rect[2],ix);
+				rect[2]=std::min(rect[2],ix);
 			}
 			if (pz2<0)
 			{
@@ -264,9 +272,9 @@ int DeferredShader::lightScissorTest(const Float3 & position, float radius, int 
 
 				float px=-pz2*nz2/nx2;
 				if (px<l.x)
-					rect[0]=max(rect[0],ix);
+					rect[0]=std::max(rect[0],ix);
 				else
-					rect[2]=min(rect[2],ix);
+					rect[2]=std::min(rect[2],ix);
 			}
 		}
 
@@ -292,11 +300,11 @@ int DeferredShader::lightScissorTest(const Float3 & position, float radius, int 
 				float py=-pz1*nz1/ny1;
 				if (py<l.y)
 				{
-					rect[1]=max(rect[1],iy);
+					rect[1]=std::max(rect[1],iy);
 				}
 				else
 				{
-					rect[3]=min(rect[3],iy);
+					rect[3]=std::min(rect[3],iy);
 				}
 
 				if (pz2<0)
@@ -307,11 +315,11 @@ int DeferredShader::lightScissorTest(const Float3 & position, float radius, int 
 					float py=-pz2*nz2/ny2;
 					if (py<l.y)
 					{
-						rect[1]=max(rect[1],iy);
+						rect[1]=std::max(rect[1],iy);
 					}
 					else
 					{
-						rect[3]=min(rect[3],iy);
+						rect[3]=std::min(rect[3],iy);
 					}
 				}
 			}

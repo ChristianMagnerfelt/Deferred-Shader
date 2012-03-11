@@ -5,33 +5,61 @@
 
 #pragma once
 
-#include "Util.h"
 #include "ShaderManager.h"
+#include "Entity.h"
+#include "Material.h"
+
+//STL
 #include <vector>
+#include <set>
 
 
-struct Entity {
-	Entity(Float3 pos, Float3 scl, Float4 rot) 
-		: position(pos), scale(scl), rotation(rot) {}
-	Float3 position; 
-	Float3 scale;
-	Float4 rotation;
-};
-
-typedef vector<Entity> EntityVector;
 
 class Model {
 	public:
-		virtual ~Model(){}
-		virtual void draw(ShaderManager & shaderManager) = 0;
-		unsigned int getDiffuseTexID();
-		unsigned int getNormalMapID();
+		typedef std::vector<Entity> EntityVector;
+		typedef std::set<Material> MaterialSet;
+
+		Model();
+		virtual ~Model();
+
+		virtual void draw(ShaderManager & shaderManager);
+
+		bool hasDiffuseTexture() const;
+		bool hasNormalTexture() const;
+		bool hasVertexBuffer() const;	
+
+		unsigned int getDiffuseTexID() const;
+		unsigned int getNormalTexID() const;
+		unsigned int getVertexBufferID() const;
+		unsigned int getNumVertices() const;
+
 		void setDiffuseTexID(unsigned int & id);
-		void setNormalMapID(unsigned int & id);
+		void setNormalTexID(unsigned int & id);
+		void setVertexBufferID(unsigned int & id);		
+		void setNumVertices(unsigned int & id);
+		
+		void addMaterial(Material mat);
+		void removeMaterial(Material::materialId mat);
+		const Material & getMaterial(Material::materialId mat) const;
+		void setCurrentMaterial(Material::materialId mat);
+
 		void addEntity(Entity & entity);
 		EntityVector & getAllEntities();
-	protected:
+
+	private:
+		bool hasDiffuseTex;
+		bool hasNormalTex;
+		bool hasVertexBuf;
+
 		unsigned int diffuseTexID;
-		unsigned int normalMapID;
-		EntityVector entityVector;		
+		unsigned int normalTexID;
+		unsigned int vertexBufferID;
+
+		Material::materialId currentMaterial;
+
+		EntityVector entityVector;
+		MaterialSet materials;
+
+		unsigned int numVertices;
 };

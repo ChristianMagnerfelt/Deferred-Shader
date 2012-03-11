@@ -19,15 +19,15 @@
 
 // Additional headers
 #include <utility>
-#include <glm/glm.hpp>
 
 // Add libraries
 #pragma comment (lib , "cg.lib")
 #pragma comment (lib , "cgGL.lib")
 #pragma comment (lib , "glut32.lib")
 #pragma comment (lib , "glew32.lib")
+#pragma comment (lib , "assimp.lib")
 
-// Typedefs
+/** Typedefs
 typedef std::pair<float,float> Float2;
 
 struct Float3
@@ -44,12 +44,11 @@ struct Float4
 	Float4(float a,float b,float c,float d) : x(a), y(b), z(c), w(d){}
 	float x,y,z,w;
 	Float4 dot(const Float4 & fl){ return Float4(x*fl.x,y*fl.y,z*fl.z,w*fl.w);}
-};
-
-using namespace std;
+};**/
 
 // Debugging
 void checkFramebufferEXTSupport();
+void checkVertexBufferEXTSupport();
 void checkFramebufferStatus();
 void checkGLErrors(const char * action);
 

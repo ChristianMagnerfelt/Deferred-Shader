@@ -6,9 +6,9 @@ RTGModel::~RTGModel()
 }
 void RTGModel::draw(ShaderManager & shader)
 {
-	shader.bindCGTexture(diffuseTexID,MODEL_TEXTURE);
-	//shader.bindCGTexture(normalMapID,MODEL_NORMAL_MAP);
-	shader.bindCGMaterial(Float4(mat->spc[0],mat->spc[0],mat->spc[0],mat->shn),SPECULAR);
+	shader.bindCGTexture(getDiffuseTexID(),COLOR_TEXTURE);
+	shader.bindCGTexture(getNormalTexID(),NORMAL_TEXTURE);
+	//shader.bindCGMaterial(Float4(mat->spc[0],mat->spc[0],mat->spc[0],mat->shn),SPECULAR);
 	for(unsigned int i = 0; i < file->nnodes; ++i)
 	{
 		drawNode(file->nodes[i]);
@@ -43,7 +43,7 @@ void RTGModel::drawObject(RTGObject *obj)
 			p = &obj->pos[v->p];
 			
 			glNormal3f(n->x, n->y, n->z);
-			glTexCoord2f(t->x, -(t->y));
+			glMultiTexCoord3f(GL_TEXTURE1,t->x, -(t->y), 0.0);
 			glVertex3f(p->x, p->y, p->z);
 		}
 		glEnd();

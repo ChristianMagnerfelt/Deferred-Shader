@@ -6,26 +6,28 @@
 #pragma once 
 
 #include "Util.h"
+#include "StateManager.h"
 
+#include <glm\glm.hpp>
+#include <string>
+
+//TODO: Shadow & light textures
 enum TextureOptions {
-	MODEL_TEXTURE,
-	MODEL_NORMAL_MAP,
+	COLOR_TEXTURE,
+	NORMAL_TEXTURE,
 	GB_DEBUG
 };
-enum MaterialOptions {
-	SPECULAR
-};
-enum Stage
-{
-	GEOMETRY_STAGE,
-	LIGTHING_STAGE,
-	DEBUG_STAGE,
+
+// TODO: format for scalability of multiple shaders per stage
+enum Shader {
+	VERTEX,
+	FRAGMENT,
 };
 
 class ShaderManager 
 {
 	public:
-		ShaderManager() : programName("DS ShaderManager") {}
+		ShaderManager(StateManager & manager) : stateManager(manager), programName("DS ShaderManager") {}
 		~ShaderManager();
 		void initShader();
 
@@ -36,16 +38,21 @@ class ShaderManager
 		void unbindLightingStageShader();
 
 		void updateModelviewMatrix();
-		void updateModelviewPerspectiveMatrix(Stage stage);
+		void updateModelviewPerspectiveMatrix();
 
 		void bindCGParameter(CGparameter & parameter, const char * name);
-		void bindCGTexture(GLuint & texID, TextureOptions);
-		void bindCGMaterial(Float4 value, MaterialOptions options);
+		bool bindCGTexture(GLuint texID, TextureOptions);
+		bool setCgParam(float value, const char * name, Shader shader);
+		bool setCgParam(glm::vec3 vec, const char * name, Shader shader);
+	
+	private:
+		CGparameter getParamFromShader(const char * name, Shader & shader);
 
 		void checkForCgError(const char * situation);
-	private:
+
 		CGcontext cgContext;
 		CGprofile cgVertexProfile, cgFragmentProfile;
-		CGprogram cgGeometryStageVP, cgGeometryStageFP, cgDebugVP, cgDebugFP;
+		CGprogram cgGeometryStageVP, cgGeometryStageFP, cgLightingStageVP, cgLightingStageFP, cgDebugVP, cgDebugFP;
 		const char * programName;
+		StateManager & stateManager;
 };

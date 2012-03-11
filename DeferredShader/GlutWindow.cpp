@@ -7,7 +7,7 @@ inline void frwIdle(void){gGlutWindow->idle();}
 inline void frwMouseClick(int b, int s, int x, int y){gGlutWindow->mouseClick(b,s,x,y);}
 inline void frwMouseMove(int x, int y){gGlutWindow->mouseMove(x,y);}
 
-GlutWindow::GlutWindow()
+GlutWindow::GlutWindow() : camera(SCREEN_WIDTH, SCREEN_HEIGHT), deferredShader(stateManager)
 {
 	gGlutWindow = this;
 }
@@ -17,7 +17,7 @@ GlutWindow::~GlutWindow()
 }
 void GlutWindow::printGLInfo()
 {
-	cout << "OpenGL Version : " << glGetString(GL_VERSION) << endl;
+	std::cout << "OpenGL Version : " << glGetString(GL_VERSION) << std::endl;
 }
 void GlutWindow::init(int & argc, char * argv [])
 {
@@ -31,31 +31,31 @@ void GlutWindow::init(int & argc, char * argv [])
 	if (GLEW_OK != glewErr)
 	{
 	/* Problem: glewInit failed, something is seriously wrong. */
-		cout << glewGetErrorString(glewErr) << endl;
+		std::cout << glewGetErrorString(glewErr) << std::endl;
 	}
 
 	glutDisplayFunc(frwDisplay);
-	//glutReshapeFunc(GL_FALSE);
+	//glutReshapeFunc(GL_FALSE); // TODO: reshape when I'm not lazy
 	glutKeyboardFunc(frwKeyboard);
 	glutIdleFunc(frwIdle);
 	glutMouseFunc(frwMouseClick);
 	glutMotionFunc(frwMouseMove);
 
-	deferredShader.init(SCREEN_WIDTH,SCREEN_HEIGHT);
+	deferredShader.init(camera);
 	scene.loadContent(contentManager);
 
-	camera.setCameraPerspective(30.0,1.5,3.0,100.0);
+	camera.setCameraPerspective(30.0,1.5,5.0,100.0);
 	camera.setCameraPosition(
-		Float3(6.0,-2.0,32.0),
-		Float3(0.0,1.0,0.0),
-		Float3(0.0,1.0,0.0));
+		glm::vec3(6.0,-2.0,32.0),
+		glm::vec3(0.0,1.0,0.0),
+		glm::vec3(0.0,1.0,0.0));
 	camera.setCameraSpeed(0.01);
 	glutWarpPointer(SCREEN_WIDTH/2, SCREEN_HEIGHT/2); // Reset mouse
-	glutSetCursor(GLUT_CURSOR_NONE); 
+	//glutSetCursor(GLUT_CURSOR_NONE); 
 }
 void GlutWindow::display()
 {
-	deferredShader.draw(scene,camera,stateHandler);
+	deferredShader.draw(scene,camera);
 	glutSwapBuffers();
 }
 void GlutWindow::reshape(GLsizei width, GLsizei height)
@@ -79,32 +79,32 @@ void GlutWindow::keyboard(unsigned char & key, int & x , int & y)
 	switch(key)
 	{
 		case (49) :
-			stateHandler.toggleDebugState(DIFFUSE_BUFFER);
+			stateManager.setDebugState(StateManager::DIFFUSE_BUFFER);
 			break;
 		case (50) :
-			stateHandler.toggleDebugState(NORMAL_BUFFER);
+			stateManager.setDebugState(StateManager::NORMAL_BUFFER);
 			break;
 		case (51) :
-			stateHandler.toggleDebugState(SPECULAR_BUFFER);
+			stateManager.setDebugState(StateManager::SPECULAR_BUFFER);
 			break;
 		case (52) :
-			stateHandler.toggleDebugState(DEPTH_BUFFER);
+			stateManager.setDebugState(StateManager::DEPTH_BUFFER);
 			break;
 		case (87 ) :											//W
 		case (119) :											//w
-			camera.moveCamera(camera.speed);
+			camera.moveCamera(camera.getCameraSpeed());
 			break;
 		case (65) :												//A
 		case (97) :												//a
-			camera.rotateView(-camera.speed);
+			camera.rotateView(-camera.getCameraSpeed());
 			break;
 		case (83) :												//S
 		case (115) :											//s
-			camera.moveCamera(-camera.speed);
+			camera.moveCamera(-camera.getCameraSpeed());
 			break;
 		case (68) :												//D
 		case (100) :											//d
-			camera.rotateView(camera.speed);
+			camera.rotateView(camera.getCameraSpeed());
 			break;
 		default :
 			break;
@@ -119,12 +119,17 @@ void GlutWindow::run()
 	glutMainLoop();
 }
 void GlutWindow::mouseClick(int button, int state, int x, int y) {
-	//
+	if(state == GLUT_DOWN && button == GLUT_LEFT_BUTTON)
+	{
+		camera.setFocus(true);
+	}else if(button == GLUT_LEFT_BUTTON)
+	{
+		camera.setFocus(false);
+	}
 }
 
 void GlutWindow::mouseMove(int x, int y) {
-	//
-	camera.mouseX = x;
-	camera.mouseY = y;
+	camera.setMouseX(x);
+	camera.setMouseY(y);
 }
 

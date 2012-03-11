@@ -1,11 +1,15 @@
 void GeometryStageVS(
 				float4 position : POSITION,				// Position (object space)
 				float3 normal : NORMAL,					// Normal (object space)
-				float2 texCoord : TEXCOORD0,			// Texture coordinates
+				float3 biTangent : TEXCOORD0,			// BiTangent
+				float3 texCoord : TEXCOORD1,
 			out float4 oPosition : POSITION,
 			out float2 oTexCoord : TEXCOORD0,
 			out float4 oNormal : TEXCOORD1,
-		uniform float4x4 modelViewProj
+			out float4 oBiTangent : TEXCOORD2,
+			out float4 oTangent : TEXCOORD3,
+		uniform float4x4 modelViewProj,
+		uniform float4x4 modelView
 		)
 {
 	// Vertex position in object space
@@ -15,33 +19,44 @@ void GeometryStageVS(
 	oPosition = mul(modelViewProj,pos);
 
 	// Pipe texture coordinates
-	oTexCoord = texCoord;
+	oTexCoord = texCoord.xy;
 
 	// Normals in object space
-	float4 N = float4(normal.x,normal.y,normal.z,1.0);
+	float3 tangent = cross(normal,biTangent);
+	float4 N = float4(normal.x,normal.y,normal.z, 1.0);
+	float4 bT = float4(biTangent.x, biTangent.y, biTangent.z, 1.0);
+	float4 T = float4(tangent.x, tangent.y, tangent.z, 1.0);
 
-	// Normals in clip space
-	oNormal = mul(modelViewProj,N);
+	// Normals, biTangents and tangents
+	oNormal = mul(modelViewProj, N);
+	oBiTangent = mul(modelViewProj, bT);
+	oTangent = mul(modelViewProj, T);
 }
 
 void GeometryStageFS(
 					float4 pos : POSITION,				// Position (clip space)
 					float2 texCoord : TEXCOORD0,		// Texture coordinate
-					float4 normal : TEXCOORD1,			// Surface normal (view space)
+					float4 normal : TEXCOORD1,			// Surface normal
+					float4 biTangent : TEXCOORD2,		// Bitangent
+					float4 tangent : TEXCOORD3,			// Tangent
 				out float3 oDiffuse : COLOR0,			// diffuse
 				out float3 oNormal : COLOR1,			// normal
 				out float4 oSpecular : COLOR2,			// specular
-		uniform sampler2D normaltex,
-		uniform sampler2D colortex,
-		uniform float4 diffuse,
-		uniform float4 specular
+		uniform sampler2D normalTex,
+		uniform sampler2D colorTex,
+		uniform float3 diffuse,
+		uniform float3 specular,
+		uniform float shinyness
 		)
 {
-	float3 N = tex2D(normaltex, texCoord);
-	float3 color  = tex2D(colortex, texCoord);
-	N = normalize(normal);
+	float3 N = tex2D(normalTex, texCoord).xyz;
+	N -= 0.5;
+	N = float3(N.x*tangent.x, N.y*biTangent.y, N.z*normal.z);
+	N = normalize(N);
+	N = N*0.5 + 0.5;
+	float3 color  = tex2D(colorTex, texCoord).xyz;
 
 	oDiffuse = color;
 	oNormal = N;
-	oSpecular = specular;
+	oSpecular = float4(specular,shinyness);
 }

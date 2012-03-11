@@ -6,15 +6,19 @@
 #pragma once
 
 #include "Util.h"
+#include <glm/glm.hpp>
 
 class Light {
 public:
 	Light(){}
-	Light(Float3 pos, Float3 color) : lightPos(pos), lightColor(color) {}
-	inline Float3 & getPosition();
-	inline Float3 & getColor();
-	void setPosition(Float3 & value);
-	void setColor(Float3 & value);
-	Float3 lightPos;
-	Float3 lightColor;
+	Light(glm::vec3 pos, glm::vec3 color) : lightPos(pos), lightColor(color) {}
+
+	inline glm::vec3 & getPosition();
+	inline glm::vec3 & getColor();
+
+	void setPosition(glm::vec3 & value);
+	void setColor(glm::vec3 & value);
+private:
+	glm::vec3 lightPos;
+	glm::vec3 lightColor;
 };

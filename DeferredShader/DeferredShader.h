@@ -13,18 +13,18 @@ Deferred Shader
 #include "ShaderManager.h"
 #include "Scene.h"
 #include "Camera.h"
-#include "StateHandler.h"
+#include "StateManager.h"
 
 #include <iostream>
 
 class DeferredShader
 {
 	public:
-		DeferredShader();
+		DeferredShader(StateManager & manager);
 		~DeferredShader();
-		void init(GLuint screenWidth, GLuint screenHeight);
+		void init(Camera & camera);
 		void cleanUp();
-		void draw(Scene & scene, Camera & camera, StateHandler & stateHandler);
+		void draw(Scene & scene, Camera & camera);
 	private:
 		//G-Buffer management
 		void bindGBuffer();
@@ -38,7 +38,7 @@ class DeferredShader
 		void geometryStage(Scene & scene,Camera & camera);
 
 		//Debug Stage
-		void debugStage(Camera & camera, StateHandler & stateHandler);
+		void debugStage(Camera & camera);
 
 		//Lighting Stage
 		void drawRec(Camera & camera);
@@ -46,7 +46,7 @@ class DeferredShader
 		void lightingStage(Scene & scene, Camera & camera);
 		void drawAmbient();
 		void drawLighting(Scene & scene);
-		int lightScissorTest(const Float3 & position, float radius, int sx, int sy, Camera & camera);
+		int lightScissorTest(const glm::vec3 & position, float radius, int sx, int sy, Camera & camera);
 
 		//G-Buffers
 		GLuint fbo;
@@ -54,10 +54,8 @@ class DeferredShader
 		GLuint gbDepth;
 		GLuint gbSpecular;
 		GLuint gbDiffuse;
-		GLuint screenHeight;
-		GLuint screenWidth;
-		GLboolean initOK;
 
 		//Shader Manager
-		ShaderManager	shaderManager;
+		ShaderManager shaderManager;
+		StateManager & stateManager;
 };

@@ -13,8 +13,8 @@
 
 #include <vector>
 
-typedef vector<Model*> ModelVector;
-typedef vector<Light*> LightVector;
+typedef std::vector<Model*> ModelVector;
+typedef std::vector<Light*> LightVector;
 
 class Scene
 {

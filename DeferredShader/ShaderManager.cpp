@@ -111,16 +111,24 @@ void ShaderManager::bindDebugShader()
 }
 void ShaderManager::updateModelviewMatrix()
 {
-
+	CGparameter modelviewMatrix;
+	StateManager::renderingStage currentStage = stateManager.getRenderingStage();
+	if(currentStage == StateManager::GEOMETRY_STAGE)
+	{
+		modelviewMatrix = cgGetNamedParameter(cgGeometryStageVP, "modelView");
+	}
+	cgGLSetStateMatrixParameter(modelviewMatrix, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
+	checkForCgError("Setting Modelview Matrix");
 }
-void ShaderManager::updateModelviewPerspectiveMatrix(Stage stage)
+void ShaderManager::updateModelviewPerspectiveMatrix()
 {
 	CGparameter modelviewProjMatrix;
-	if(stage == GEOMETRY_STAGE)
+	StateManager::renderingStage currentStage = stateManager.getRenderingStage();
+	if(currentStage == StateManager::GEOMETRY_STAGE)
 	{
 		modelviewProjMatrix = cgGetNamedParameter(cgGeometryStageVP, "modelViewProj");
 	}
-	else if(stage == DEBUG_STAGE)
+	else if(currentStage == StateManager::DEBUG_STAGE)
 	{
 		modelviewProjMatrix = cgGetNamedParameter(cgDebugVP, "modelViewProj");
 	}
@@ -131,37 +139,86 @@ void ShaderManager::bindCGParameter(CGparameter & parameter, const char * name)
 {
 
 }
-void ShaderManager::bindCGTexture(GLuint & texID, TextureOptions options)
+bool ShaderManager::bindCGTexture(GLuint texID, TextureOptions options)
 {
-	CGparameter texture_param;
-	if(options == MODEL_TEXTURE)
+	CGparameter texture_param = nullptr;
+	if(options == COLOR_TEXTURE)
 	{
-		texture_param = cgGetNamedParameter(cgGeometryStageFP, "colortex");
+		texture_param = cgGetNamedParameter(cgGeometryStageFP, "colorTex");
+		checkForCgError("Getting Texture Parameter");
 	}
-	else if(options == MODEL_NORMAL_MAP)
+	else if(options == NORMAL_TEXTURE)
 	{
-		texture_param = cgGetNamedParameter(cgGeometryStageFP, "normaltex");
+		texture_param = cgGetNamedParameter(cgGeometryStageFP, "normalTex");
+		checkForCgError("Getting Texture Parameter");
 	}
 	else if(options == GB_DEBUG)
 	{
 		texture_param = cgGetNamedParameter(cgDebugFP, "gbTex");
+		checkForCgError("Getting Texture Parameter");
 	}
 	else
 	{
-		return;
+		std::cout << "Invalid parameter configuration" << std::endl;
+		return false;
 	}
-	checkForCgError("Getting Texture Parameter");
-
 	cgGLSetTextureParameter(texture_param, texID);
 	cgGLEnableTextureParameter(texture_param);
 	checkForCgError("Setting 2D Texture ");
+	return true;
 }
-void ShaderManager::bindCGMaterial(Float4 mat, MaterialOptions options)
+bool ShaderManager::setCgParam(float value, const char * name, Shader shader)
 {
-	CGparameter param;
-	param = cgGetNamedParameter(cgGeometryStageFP, "specular");
-	cgGLSetParameter4f(param, mat.x, mat.y, mat.z, mat.w);
-	checkForCgError("Setting Material");
+	CGparameter param = getParamFromShader(name,shader);
+	if(param != nullptr) 
+	{
+		cgGLSetParameter1f(param, value);
+		checkForCgError("Setting Material");
+		return true;
+	}
+	return false;
+}
+bool  ShaderManager::setCgParam(glm::vec3 vec, const char * name, Shader shader)
+{
+	CGparameter param = getParamFromShader(name,shader);
+	if(param != nullptr) ;
+	{
+		cgGLSetParameter3f(param, vec.r, vec.g, vec.b);
+		checkForCgError("Setting Material");
+		return true;
+	}
+	return false;
+}
+CGparameter ShaderManager::getParamFromShader(const char * name, Shader & shader)
+{
+	CGparameter param = nullptr;
+	// TODO: function map to add scalibility of setting params for shaders
+	StateManager::renderingStage currentStage = stateManager.getRenderingStage();
+	if(currentStage == StateManager::GEOMETRY_STAGE && shader == VERTEX)
+	{
+		param = cgGetNamedParameter(cgGeometryStageVP, name);
+		checkForCgError(name);
+	}
+	else if(currentStage == StateManager::GEOMETRY_STAGE && shader == FRAGMENT)
+	{
+		param = cgGetNamedParameter(cgGeometryStageFP, name);
+		checkForCgError(name);
+	}
+	else if(currentStage == StateManager::LIGHTING_STAGE && shader == VERTEX)
+	{
+		param = cgGetNamedParameter(cgLightingStageVP, name);
+		checkForCgError(name);
+	}
+	else if(currentStage == StateManager::LIGHTING_STAGE && shader == FRAGMENT)
+	{
+		param = cgGetNamedParameter(cgLightingStageFP, name);
+		checkForCgError(name);
+	}
+	else
+	{
+		std::cout << "Invalid parameter configuration" << std::endl;
+	}
+	return param;
 }
 void ShaderManager::checkForCgError(const char * situation)
 {
@@ -170,10 +227,10 @@ void ShaderManager::checkForCgError(const char * situation)
 
 	if (error != CG_NO_ERROR) 
 	{
-		cerr << programName << " : " << situation << " : " << string << endl;
+		std::cerr << programName << " : " << situation << " : " << string << std::endl;
 		if (error == CG_COMPILER_ERROR) 
 		{
-			cerr << cgGetLastListing(cgContext) << endl;
+			std::cerr << cgGetLastListing(cgContext) << std::endl;
 		}
 		system("pause");
 		exit(1);

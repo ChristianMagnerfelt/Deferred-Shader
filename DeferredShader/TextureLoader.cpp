@@ -9,13 +9,13 @@ GLuint TextureLoader::loadJPGTexture(const char * fileName)
 }
 GLuint TextureLoader::loadRAWRGBTexture(const char * fileName, int width, int height)
 {
-	cout << "Reading RAW texture : " << fileName << endl;
+	std::cout << "Reading RAW texture : " << fileName << std::endl;
 	GLuint text;
     char * buffer;
 	int length = width * height * 3;
 	
-	ifstream is;
-	is.open(fileName, ios::binary);				// Open texture data
+	std::ifstream is;
+	is.open(fileName, std::ios::binary);				// Open texture data
 
 	buffer = new char [length];					// Allocate buffer
 
@@ -33,6 +33,6 @@ GLuint TextureLoader::loadRAWRGBTexture(const char * fileName, int width, int he
 		GL_UNSIGNED_BYTE, buffer);
 
 	delete [] buffer;							// Delete buffer
-	cout << "Loaded RAW texture : " << fileName << " : Texture ID : " << text << endl;
+	std::cout << "Loaded RAW texture : " << fileName << " : Texture ID : " << text << std::endl;
     return text;
 }
