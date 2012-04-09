@@ -36,6 +36,11 @@ void Model::draw(ShaderManager & shader)
 		shader.setCgParam(it->getDiffuseColor(),"diffuse",FRAGMENT);
 		shader.setCgParam(it->getSpecularColor(),"specular",FRAGMENT);
 		shader.setCgParam(it->getShinyness(),"shinyness",FRAGMENT);
+		shader.setCgParam(it->getAmbientColor(),"ambient",FRAGMENT);
+		if(shader.getStateManager().getRenderingStage() == StateManager::TRANSPARENCY_STAGE)
+		{
+			shader.setCgParam(it->getOpacity(),"opacity",FRAGMENT);
+		}
 	}
 
 	glBindBufferARB(GL_ARRAY_BUFFER_ARB, vertexBufferID);
@@ -113,9 +118,9 @@ void Model::removeMaterial(Material::materialId id)
 		materials.erase(it);
 	}
 }
-const Material & Model::getMaterial(Material::materialId id) const
+Material Model::getMaterial(Material::materialId id)
 {
-	MaterialSet::const_iterator it = std::find(materials.begin(), materials.end(), id);
+	MaterialSet::iterator it = std::find(materials.begin(), materials.end(), id);
 	if(it == materials.end())
 	{
 		throw std::exception("No such element");
@@ -145,4 +150,30 @@ void Model::addEntity(Entity & entity)
 Model::EntityVector & Model::getAllEntities()
 {
 	return entityVector;
+}
+const Material::materialId & Model::getCurrentMaterial() const
+{
+	return currentMaterial;
+}
+bool Model::isTransperent() const
+{
+	MaterialSet::const_iterator it = std::find(materials.begin(), materials.end(), currentMaterial); 
+	if(it == materials.end())
+	{
+		std::cerr << "No Material set" << std::endl;
+		throw std::exception("Material Missing");
+	}
+	if(it->getOpacity() < 1.0 )
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+void Model::updateMaterial(Material & mat)
+{
+	removeMaterial(mat.getID());
+	addMaterial(mat);
 }

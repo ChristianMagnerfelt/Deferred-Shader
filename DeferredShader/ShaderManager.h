@@ -27,23 +27,23 @@ enum Shader {
 class ShaderManager 
 {
 	public:
-		ShaderManager(StateManager & manager) : stateManager(manager), programName("DS ShaderManager") {}
+		ShaderManager(StateManager & stateM) : stateManager(stateM), programName("DS ShaderManager") {}
 		~ShaderManager();
 		void initShader();
 
-		void bindGeometryStageShader();
-		void unbindGeometryStageShader();
-		void bindDebugShader();
-		void bindLightingStageShader();
-		void unbindLightingStageShader();
+		void bindStageShader();
 
 		void updateModelviewMatrix();
 		void updateModelviewPerspectiveMatrix();
 
 		void bindCGParameter(CGparameter & parameter, const char * name);
 		bool bindCGTexture(GLuint texID, TextureOptions);
+		bool setCgParam(GLuint id, const char * name, Shader shader);
 		bool setCgParam(float value, const char * name, Shader shader);
 		bool setCgParam(glm::vec3 vec, const char * name, Shader shader);
+		bool setCgParam(glm::vec4 vec, const char * name, Shader shader);
+		bool setCgParam(glm::mat4x4 mat, const char * name, Shader shader);
+		StateManager & getStateManager();
 	
 	private:
 		CGparameter getParamFromShader(const char * name, Shader & shader);
@@ -52,7 +52,15 @@ class ShaderManager
 
 		CGcontext cgContext;
 		CGprofile cgVertexProfile, cgFragmentProfile;
-		CGprogram cgGeometryStageVP, cgGeometryStageFP, cgLightingStageVP, cgLightingStageFP, cgDebugVP, cgDebugFP;
+		CGprogram 
+			cgGeometryStageVP, 
+			cgGeometryStageFP, 
+			cgLightingStageVP, 
+			cgLightingStageFP, 
+			cgDebugVP, 
+			cgDebugFP,
+			cgTransparencyStageVP,
+			cgTransparencyStageFP;
 		const char * programName;
 		StateManager & stateManager;
 };

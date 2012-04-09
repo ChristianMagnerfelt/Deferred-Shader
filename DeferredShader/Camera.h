@@ -38,6 +38,11 @@ class Camera
 		glm::vec3 getReferencePoint();
 		glm::vec3 getUpVector();
 
+		glm::mat4x4 getModelViewMatrix();
+		glm::mat4x4 getProjectionMatrix();
+
+		glm::vec3 getViewVector();
+
 		//TODO: move mouse states to statehandler
 		int getMouseX();
 		int getMouseY();
@@ -64,9 +69,11 @@ class Camera
 		void setGLModelView();
 		void setGLProjection();		
 
-private:
 		void calculatePlanes();
+private:
+		
 		void calculateRVector();
+		void calculateViewVector();
 
 		// Camera variables
 		float speed;
@@ -79,7 +86,30 @@ private:
 		glm::vec3 eyeP;						// Eye Point
 		glm::vec3 refP;						// Reference Point
 		glm::vec3 upV;						// Up vector
+		glm::mat4x4 modelViewMatrix;
+		glm::mat4x4 projectionMatrix;
+		
+		// View vectors
 		glm::vec3 rightV;					// Right vector
+		glm::vec3 viewVec;
+		glm::vec3 nearVec;
+		glm::vec3 farVec;
+
+		// Plane variables
+		float hNear;
+		float hFar;
+		float wNear;
+		float wFar;
+
+		glm::vec3 nrb;						// Near right bottom
+		glm::vec3 nrt;						// Near right top
+		glm::vec3 nlb;						// Near left bottom
+		glm::vec3 nlt;						// Near left top
+
+		glm::vec3 frb;						// Far right bottom
+		glm::vec3 frt;						// Far right top
+		glm::vec3 flb;						// Far left bottom
+		glm::vec3 flt;						// Far left top
 
 		// Mouse variables 
 		int mouseX;

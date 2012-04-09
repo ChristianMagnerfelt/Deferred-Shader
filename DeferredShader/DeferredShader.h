@@ -20,7 +20,7 @@ Deferred Shader
 class DeferredShader
 {
 	public:
-		DeferredShader(StateManager & manager);
+		DeferredShader(StateManager & stateM, ShaderManager & shaderM);
 		~DeferredShader();
 		void init(Camera & camera);
 		void cleanUp();
@@ -45,7 +45,7 @@ class DeferredShader
 		void drawLights();
 		void lightingStage(Scene & scene, Camera & camera);
 		void drawAmbient();
-		void drawLighting(Scene & scene);
+		void drawLighting(Scene & scene, Camera & camera);
 		int lightScissorTest(const glm::vec3 & position, float radius, int sx, int sy, Camera & camera);
 
 		//G-Buffers
@@ -56,6 +56,6 @@ class DeferredShader
 		GLuint gbDiffuse;
 
 		//Shader Manager
-		ShaderManager shaderManager;
+		ShaderManager & shaderManager;
 		StateManager & stateManager;
 };

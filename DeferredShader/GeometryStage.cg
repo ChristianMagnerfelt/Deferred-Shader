@@ -1,13 +1,13 @@
 void GeometryStageVS(
-				float4 position : POSITION,				// Position (object space)
-				float3 normal : NORMAL,					// Normal (object space)
-				float3 biTangent : TEXCOORD0,			// BiTangent
-				float3 texCoord : TEXCOORD1,
-			out float4 oPosition : POSITION,
-			out float2 oTexCoord : TEXCOORD0,
-			out float4 oNormal : TEXCOORD1,
-			out float4 oBiTangent : TEXCOORD2,
-			out float4 oTangent : TEXCOORD3,
+				float4 position			: POSITION,		// Position (object space)
+				float3 normal			: NORMAL,		// Normal (object space)
+				float3 biTangent		: TEXCOORD0,	// BiTangent
+				float3 texCoord			: TEXCOORD1,
+			out float4 oPosition		: POSITION,
+			out float2 oTexCoord		: TEXCOORD0,
+			out float3 oNormal			: TEXCOORD1,
+			out float3 oBiTangent		: TEXCOORD2,
+			out float3 oTangent			: TEXCOORD3,
 		uniform float4x4 modelViewProj,
 		uniform float4x4 modelView
 		)
@@ -23,22 +23,19 @@ void GeometryStageVS(
 
 	// Normals in object space
 	float3 tangent = cross(normal,biTangent);
-	float4 N = float4(normal.x,normal.y,normal.z, 1.0);
-	float4 bT = float4(biTangent.x, biTangent.y, biTangent.z, 1.0);
-	float4 T = float4(tangent.x, tangent.y, tangent.z, 1.0);
 
 	// Normals, biTangents and tangents
-	oNormal = mul(modelViewProj, N);
-	oBiTangent = mul(modelViewProj, bT);
-	oTangent = mul(modelViewProj, T);
+	oNormal = mul(modelViewProj, float4(normal,1.0)).xyz;
+	oBiTangent = mul(modelViewProj, float4(biTangent,1.0)).xyz;
+	oTangent = mul(modelViewProj, float4(tangent,1.0)).xyz;
 }
 
 void GeometryStageFS(
 					float4 pos : POSITION,				// Position (clip space)
 					float2 texCoord : TEXCOORD0,		// Texture coordinate
-					float4 normal : TEXCOORD1,			// Surface normal
-					float4 biTangent : TEXCOORD2,		// Bitangent
-					float4 tangent : TEXCOORD3,			// Tangent
+					float3 normal : TEXCOORD1,			// Surface normal
+					float3 biTangent : TEXCOORD2,		// Bitangent
+					float3 tangent : TEXCOORD3,			// Tangent
 				out float3 oDiffuse : COLOR0,			// diffuse
 				out float3 oNormal : COLOR1,			// normal
 				out float4 oSpecular : COLOR2,			// specular
@@ -50,13 +47,20 @@ void GeometryStageFS(
 		)
 {
 	float3 N = tex2D(normalTex, texCoord).xyz;
+	N = N*2 - 0.5;
+	float3x3 TBNMatrix = float3x3(tangent, biTangent, normal);
+
+
+	/**float3 N = tex2D(normalTex, texCoord).xyz;
 	N -= 0.5;
 	N = float3(N.x*tangent.x, N.y*biTangent.y, N.z*normal.z);
 	N = normalize(N);
 	N = N*0.5 + 0.5;
+	**/
 	float3 color  = tex2D(colorTex, texCoord).xyz;
+	N = normalize(mul(inverse(TBNMatrix), N));
 
 	oDiffuse = color;
-	oNormal = N;
+	oNormal = N*0.5 + 0.5;
 	oSpecular = float4(specular,shinyness);
 }

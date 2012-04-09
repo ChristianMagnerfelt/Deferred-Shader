@@ -2,7 +2,7 @@
 
 #include "StateManager.h"
 
-DeferredShader::DeferredShader(StateManager & manager) : stateManager(manager), shaderManager(manager)
+DeferredShader::DeferredShader(StateManager & stateM, ShaderManager & shaderM) : stateManager(stateM), shaderManager(shaderM)
 {}
 DeferredShader::~DeferredShader()
 {
@@ -95,8 +95,14 @@ void DeferredShader::cleanUp()
 void DeferredShader::draw(Scene & scene, Camera & camera)
 {
 	geometryStage(scene,camera);
-	if(stateManager.getDebugState() != StateManager::NO_DEBUG){ debugStage(camera);}
-	//lightingStage(scene,camera);
+	if(stateManager.getDebugState() != StateManager::NO_DEBUG)
+	{
+		debugStage(camera);
+	}
+	else 
+	{
+		lightingStage(scene,camera);
+	}
 }
 void DeferredShader::bindGBuffer()
 {
@@ -110,6 +116,10 @@ void DeferredShader::unbindGBuffer()
 }
 void DeferredShader::bindPBuffer()
 {
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);			// Bind Framebuffer
+	checkGLErrors("Binding FBO");							
+	checkFramebufferStatus();								// Check that framebuffer config OK
+
 	
 }
 void DeferredShader::unbindPBuffer()
@@ -122,7 +132,7 @@ void DeferredShader::geometryStage(Scene & scene, Camera & camera)
 
 	bindGBuffer();											// Bind G-Buffer for rendering
 
-	shaderManager.bindGeometryStageShader();				// Bind geometry stage shaders
+	shaderManager.bindStageShader();						// Bind geometry stage shaders
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		// Clear color & depth bit
 	glCullFace(GL_BACK);									// Set culling method			
@@ -132,9 +142,10 @@ void DeferredShader::geometryStage(Scene & scene, Camera & camera)
 	glEnable(GL_DEPTH_TEST);								// Enable Z-Buffer
 	glDisable(GL_TEXTURE_2D);								// Disable textures
 
-	camera.mouseMove();										// Update mouse movement
+	
 	camera.setGLProjection();								// Set up Projection Matrix
 	camera.setGLModelView();								// Set up Modelview Matrix
+	//camera.calculatePlanes();
 
 	scene.draw(shaderManager);								// Draw scene
 
@@ -155,7 +166,7 @@ void DeferredShader::debugStage(Camera & camera)
 	glDisable(GL_CULL_FACE);								// Disable Cull Face
 	glDisable(GL_DEPTH_TEST);								// Disable Z-Buffer
 	
-	shaderManager.bindDebugShader();
+	shaderManager.bindStageShader();
 
 	if(stateManager.getDebugState() == StateManager::DIFFUSE_BUFFER)
 	{
@@ -179,14 +190,27 @@ void DeferredShader::lightingStage(Scene & scene, Camera & camera)
 {
 	stateManager.setRenderingStage(StateManager::LIGHTING_STAGE);
 	bindPBuffer();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_CULL_FACE);								// Disable Cull Face
+	glDisable(GL_DEPTH_TEST);								// Disable Z-Buffer
 
+	shaderManager.bindStageShader();
+
+	shaderManager.setCgParam(gbDepth,"depthMap",FRAGMENT);
+	shaderManager.setCgParam(gbDiffuse,"diffuseMap",FRAGMENT);
+	shaderManager.setCgParam(gbSpecular,"specularMap",FRAGMENT);
+	shaderManager.setCgParam(gbNormal,"normalMap",FRAGMENT);
+
+	shaderManager.setCgParam(camera.getZNear(),"near",FRAGMENT);
+	shaderManager.setCgParam(camera.getZFar(),"far",FRAGMENT);
+	drawLighting(scene,camera);
 	unbindPBuffer();
 }
 void DeferredShader::drawAmbient()
 {
 	
 }
-void DeferredShader::drawLighting(Scene & scene)
+void DeferredShader::drawLighting(Scene & scene, Camera & camera)
 {
 	glEnable(GL_BLEND);
 	for (unsigned int i = 0; i < scene.getLightVector().size(); ++i)
@@ -195,18 +219,39 @@ void DeferredShader::drawLighting(Scene & scene)
 		{
 
 		}
+
+		glm::vec4 lightPos(scene.getLightVector()[i]->getPosition(),1.0);
+		glm::vec4 viewPos(camera.getEyePoint(),1.0);
+
+		lightPos = (lightPos * camera.getModelViewMatrix()) * camera.getProjectionMatrix();
+		viewPos = (viewPos * camera.getModelViewMatrix()) * camera.getProjectionMatrix();
+
+		shaderManager.setCgParam(lightPos,"lightPos",FRAGMENT);
+		shaderManager.setCgParam(viewPos,"viewPos",FRAGMENT);
+		shaderManager.setCgParam(scene.getLightVector()[i]->getColor(),"lightColor",FRAGMENT);
+		shaderManager.setCgParam(scene.getLightVector()[i]->getRadius(),"radius",FRAGMENT);
+
+		drawRec(camera);
 	}
-	
+	glDisable(GL_BLEND);
 }
 void DeferredShader::drawRec(Camera & camera)
 {
-	glMatrixMode (GL_MODELVIEW);
+	/**glMatrixMode (GL_MODELVIEW);
+	glPushMatrix();
 	glLoadIdentity ();
 	
 	glMatrixMode (GL_PROJECTION);
+	glPushMatrix();
 	glLoadIdentity ();
 
 	shaderManager.updateModelviewPerspectiveMatrix();
+
+	glMatrixMode (GL_MODELVIEW);
+	glPopMatrix();
+	glMatrixMode (GL_PROJECTION);
+	glPopMatrix();
+	**/
 
 	// Draw full screen rectangle
 	glBegin(GL_QUADS);

@@ -41,11 +41,15 @@ class Model {
 		
 		void addMaterial(Material mat);
 		void removeMaterial(Material::materialId mat);
-		const Material & getMaterial(Material::materialId mat) const;
+		Material getMaterial(Material::materialId mat);
+		const Material::materialId & getCurrentMaterial() const;
 		void setCurrentMaterial(Material::materialId mat);
+		void updateMaterial(Material & mat);
 
 		void addEntity(Entity & entity);
 		EntityVector & getAllEntities();
+
+		bool isTransperent() const;
 
 	private:
 		bool hasDiffuseTex;

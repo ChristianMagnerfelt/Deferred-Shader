@@ -11,9 +11,11 @@
 #include "Scene.h"
 #include "Camera.h"
 #include "StateManager.h"
+#include "TransparencyRenderer.h"
 
-#define SCREEN_HEIGHT	600
-#define SCREEN_WIDTH	800
+#define SCREEN_WIDTH	1280
+#define SCREEN_HEIGHT	800
+
 
 static const char *programName = "Deferred Shader";
 
@@ -38,10 +40,25 @@ class GlutWindow
 		void run();
 		void mouseClick(int button, int state, int x, int y);
 		void mouseMove(int x, int y);
+		void calculateFPS();
+		void drawFPS();
 	private:
+		//  The number of frames
+		int frameCount;
+
+		//  Number of frames per second
+		float fps;
+
+		//  currentTime - previousTime is the time elapsed
+		//  between every call of the Idle function
+		int currentTime, previousTime;
+
+		// Components
 		Camera			camera;
 		StateManager	stateManager;
+		ShaderManager   shaderManager;
 		DeferredShader	deferredShader;
+		TransparencyRenderer transperencyRenderer;
 		ContentManager	contentManager;
 		Scene			scene;
 };

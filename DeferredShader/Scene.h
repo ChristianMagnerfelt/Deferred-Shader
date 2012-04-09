@@ -8,6 +8,7 @@
 #include "Util.h"
 #include "ContentManager.h"
 #include "Model.h"
+#include "Camera.h"
 #include "ShaderManager.h"
 #include "Light.h"
 
@@ -23,8 +24,11 @@ class Scene
 		~Scene();
 		void loadContent(ContentManager &);
 		void draw(ShaderManager &);
+		void sortEntities(Camera & camera);
 		LightVector & getLightVector();
 	private:
 		ModelVector modelVector;
 		LightVector lightVector;
 };
+
+bool modelPositionCompare(Model * a, Model * b);

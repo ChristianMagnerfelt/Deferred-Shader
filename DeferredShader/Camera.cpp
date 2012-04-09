@@ -1,21 +1,22 @@
 #include "Camera.h"
 #include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
 
 void Camera::moveCamera(float speed)
 {
-	glm::vec3 vVector = glm::vec3(refP.x-eyeP.x, refP.y-eyeP.y, refP.z-eyeP.z);	// Calculate view vector
+	calculateViewVector();
 
-	eyeP.x  = eyeP.x  + vVector.x * speed;
-	eyeP.z  = eyeP.z  + vVector.z * speed;
-	refP.x = refP.x + vVector.x * speed;
-	refP.z = refP.z + vVector.z * speed;
+	eyeP.x  = eyeP.x  + viewVec.x * speed;
+	eyeP.z  = eyeP.z  + viewVec.z * speed;
+	refP.x = refP.x + viewVec.x * speed;
+	refP.z = refP.z + viewVec.z * speed;
 }
 void Camera::rotateView(float speed)
 {
-	glm::vec3 vVector = glm::vec3(refP.x-eyeP.x, refP.y-eyeP.y, refP.z-eyeP.z);	// Calculate view vector
+	calculateViewVector();
 
-	refP.z = (float)(eyeP.z + sin(speed)*vVector.x + cos(speed)*vVector.z);
-	refP.x = (float)(eyeP.x + cos(speed)*vVector.x - sin(speed)*vVector.z);
+	refP.z = (float)(eyeP.z + sin(speed)*viewVec.x + cos(speed)*viewVec.z);
+	refP.x = (float)(eyeP.x + cos(speed)*viewVec.x - sin(speed)*viewVec.z);
 }
 void Camera::mouseMove()
 {
@@ -42,7 +43,6 @@ void Camera::mouseMove()
 		if((refP.y - eyeP.y) <-8)  refP.y = eyeP.y - 8;
 	
 		rotateView(-angle_y); // Rotate
-		
 	}
 }
 // Camera dimensions
@@ -94,6 +94,18 @@ glm::vec3 Camera::getReferencePoint()
 glm::vec3 Camera::getUpVector()
 {
 	return upV;
+}
+glm::mat4x4 Camera::getModelViewMatrix()
+{
+	return modelViewMatrix;
+}
+glm::mat4x4 Camera::getProjectionMatrix()
+{
+	return projectionMatrix;
+}
+glm::vec3 Camera::getViewVector()
+{
+	return viewVec;
 }
 int Camera::getMouseX()
 {
@@ -171,44 +183,49 @@ void Camera::setGLModelView()
 {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(
-		eyeP.x,
-		eyeP.y,
-		eyeP.z,
-		refP.x,
-		refP.y,
-		refP.z,
-		upV.x,
-		upV.y,
-		upV.z);
+	modelViewMatrix = glm::lookAt(eyeP,refP,upV);
+	glLoadMatrixf(&modelViewMatrix[0][0]);
 	checkGLErrors("Setting modelview matrix");
 }
 void Camera::setGLProjection()
 {
 	glMatrixMode(GL_PROJECTION);	
 	glLoadIdentity();
-	gluPerspective(
-		fov,
-		aspect,
-		near,
-		far);
+	projectionMatrix = glm::perspective(fov,aspect,near,far);
+	glLoadMatrixf(&projectionMatrix[0][0]);
 	checkGLErrors("Setting projection matrix");
 }
 void Camera::calculatePlanes()
 {
-	glm::vec3 look = refP - eyeP;
-	glm::vec3 nc = eyeP + near * look;
-	glm::vec3 fc = eyeP + far * look;
-	float hNear = near * tan(fov);
-	float hFar = far * tan(fov);
-	float wNear = hNear * aspect;
-	float wFar = hFar * aspect;
-	
-	glm::vec3 nrb = nc - hNear*upV + wNear*rightV;
-	glm::vec3 nrt = nc + hNear*upV + wNear*rightV;
+	calculateViewVector();
 
+	nearVec = eyeP + near * viewVec;
+	farVec = eyeP + far * viewVec;
+
+	hNear = near * tan(fov);
+	hFar = far * tan(fov);
+	wNear = hNear * aspect;
+	wFar = hFar * aspect;
+	
+	calculateRVector();
+
+	nrb = nearVec - hNear*upV + wNear*rightV;
+	nrt = nearVec + hNear*upV + wNear*rightV;
+	nlb = nearVec - hNear*upV - wNear*rightV;
+	nlt = nearVec + hNear*upV - wNear*rightV;
+
+	frb = farVec - hFar*upV + wFar*rightV;
+	frt = farVec + hFar*upV + wFar*rightV;
+	flb = farVec - hFar*upV - wFar*rightV;
+	flt = farVec + hFar*upV - wFar*rightV;
+
+	
 }
 void Camera::calculateRVector()
 {
 	rightV = glm::normalize(glm::cross((refP - eyeP),upV));
+}
+void Camera::calculateViewVector()
+{
+	viewVec = refP - eyeP;
 }

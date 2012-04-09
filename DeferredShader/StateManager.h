@@ -27,16 +27,20 @@ class StateManager
 			GEOMETRY_STAGE,
 			LIGHTING_STAGE,
 			DEBUG_STAGE,
+			TRANSPARENCY_STAGE,
 		};
 		StateManager() : currentDebugState(NO_DEBUG), 
-			currentRenderingStage(GEOMETRY_STAGE){}
+			currentRenderingStage(GEOMETRY_STAGE), renderTransperency(false){}
 
 		debugState getDebugState() const;
 		renderingStage getRenderingStage() const;
+		bool getRenderTransperency() const;
 
 		void setDebugState(debugState state);
 		void setRenderingStage(renderingStage stage);
+		void setRenderTransperency(const bool value);
 	private:
 		debugState currentDebugState;
 		renderingStage currentRenderingStage;
+		bool renderTransperency;
 };

@@ -1,35 +1,80 @@
+void LightingStageVP(
+			float2 position		: POSITION,
+			float2 texCoords	: TEXCOORD0,
+		out float2 oPosition	: POSITION,
+		out float2 oTexCoords	: TEXCOORD0
+)
+{
+	oPosition = position;
+	oTexCoords = texCoords;
+}
+
 float colorToFloat(float3 color)
 {
 	const float3 byte_to_float=float3(1.0,1.0/256,1.0/(256*256));
 	return dot(color,byte_to_float);
 }
 
-struct v2f {
-	float3 vPos : POSITION,
-	float2 texCoord : TEXCOORD
-};
+float3 lighting(
+		float3 lightColor,
+		float3 lightPos,
+		float radius,
+		float3 position,
+		float3 normal,
+		float3 matDiff,
+		float3 matSpec,
+		float matShiny
+	)
+{
+	// Light vector
+	float3 L = lightPos - position;
+	
+	// View vector
+	float3 V = normalize(position);
+	
+	// Half vector			
+	float3 H = normalize(V + L);				
 
-f2s LightingStageFS(
-	v2f IN,
+	// Attenuation
+	float att = saturate(1.0 - length(L)/radius);
+	L = normalize(L);
+
+	// Calculate diffuse and specular illumination
+	float illDiff = saturate(dot(L,normal))*matDiff*lightColor;
+	float illSpec = pow(saturate(dot(H,normal)),matShiny)*matSpec*lightColor;
+
+	// Calculate final color
+	return att*(illDiff + illSpec);
+}
+
+void LightingStageFP(
+			float2 texCoord		: TEXCOORD0,
+		out float4 oColor		: COLOR0,
 	uniform sampler2D normalMap,			// Normal map
 	uniform sampler2D diffuseMap,			// Diffuse map
 	uniform sampler2D specularMap,			// Specular map
 	uniform sampler2D depthMap,				// Depth map
+	uniform float4 viewPos,					// View vector
 	uniform float4 lightPos,				// Light position
 	uniform float3 lightColor,				// Light color
-	uniform float2 planes					// Near and far plane information
+	uniform float near,						// Near plane information
+	uniform float far,						// Far plane information
+	uniform float radius					// Light radius
 	)
 {
 	// Depth
-	float depth = colorToFloat(tex2D(depth_map,IN.texCoord));
+	float depth = colorToFloat(tex2D(depthMap,texCoord));
+
 	// View direction
-	float3 view = normalize(IN.vPos);			
+	float4 V = normalize(viewPos);
+				
 	// Position
-	float3 pos;
-	pos.z = -planes.y/(planes.x+depth);
-	pos.xy = view.xy/view.z*pos.z;
+	float3 position;
+	//position.z = -far/(near+depth);
+	//position.xy = V.xy/V.z*position.z;
+
 	// Normal
-	float3 normal = tex2D(normalMap,IN.texCoord)-0.5;
+	float3 normal = tex2D(normalMap,texCoord)-0.5;
 	float len = length(normal);
 	if (len>0.1)
 	{
@@ -39,12 +84,15 @@ f2s LightingStageFS(
 	{
 		normal = 0;
 	}
+
 	// Material information
-	float3 diffuse = tex2D(diffuse_map,IN.texcoord);
-	float4 specular = tex2D(specular_map,IN.texcoord);
-	// Lighting equation (see listing 2)
-	float3 final_color = lighting(lightcolor,lightpos.xyz,
-	lightpos.w,pos,normal,diffuse,specular.xyz,specular.w);
+	float4 diffuse = tex2D(diffuseMap,texCoord);
+	float4 specular = tex2D(specularMap,texCoord);
+
+	// Lighting equation 
+	float3 finalColor = lighting(lightColor,lightPos.xyz,
+	radius,position,normal,diffuse.xyz,specular.xyz,specular.w);
+
 	// Return the final color
-	return float4(final_color,1.0);
+	oColor = float4(finalColor,1.0);
 }

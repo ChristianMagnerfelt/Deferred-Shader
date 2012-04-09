@@ -1,7 +1,9 @@
 #include "Light.h"
 #include <glm/glm.hpp>
 
-inline glm::vec3 & Light::getPosition(){ return lightPos;}
-inline glm::vec3 & Light::getColor(){ return lightColor;}
-void Light::setPosition(glm::vec3 & pos){lightPos = pos;}
-void Light::setColor(glm::vec3 & color){lightColor = color;}
+glm::vec3 Light::getPosition() const { return lightPos;}
+glm::vec3 Light::getColor() const { return lightColor;}
+float Light::getRadius() const { return radius;}
+void Light::setPosition(const glm::vec3 pos){lightPos = pos;}
+void Light::setColor(const glm::vec3 color){lightColor = color;}
+void Light::setRadius(const float rad){radius = rad;}

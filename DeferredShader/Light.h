@@ -11,14 +11,17 @@
 class Light {
 public:
 	Light(){}
-	Light(glm::vec3 pos, glm::vec3 color) : lightPos(pos), lightColor(color) {}
+	Light(glm::vec3 pos, glm::vec3 color, float rad) : lightPos(pos), lightColor(color), radius(rad) {}
 
-	inline glm::vec3 & getPosition();
-	inline glm::vec3 & getColor();
+	glm::vec3 getPosition() const;
+	glm::vec3 getColor() const;
+	float getRadius() const;
 
-	void setPosition(glm::vec3 & value);
-	void setColor(glm::vec3 & value);
+	void setPosition(const glm::vec3 value);
+	void setColor(const glm::vec3 value);
+	void setRadius(const float value);
 private:
 	glm::vec3 lightPos;
 	glm::vec3 lightColor;
+	float radius;
 };

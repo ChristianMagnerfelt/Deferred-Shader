@@ -1,0 +1,92 @@
+void TransparencyStageVP(
+			float3 position		: POSITION,		// Position
+			float3 normal		: NORMAL,		// Normal
+			float3 biTangent	: TEXCOORD0,	// Bitangent
+			float3 texCoord		: TEXCOORD1,	// Tangent
+		out float4 oPosition	: POSITION,
+		out float2 oTexCoord	: TEXCOORD0,
+		out float3 oLightVector	: TEXCOORD1,
+		out float3 oEyeVector	: TEXCOORD2,
+	uniform float4x4 modelViewProj,
+	uniform float4x4 modelMatrix,
+	uniform float4 lightPosition,
+	uniform float4 eyePosition)
+{
+	// Transform the current vertex from object to clip space
+	float4 pos = float4(position, 1.0);
+	oPosition = mul(modelViewProj, pos);
+
+	// Transform the light vector from object space into tangent space
+	float3 tangent = cross(normal,biTangent);
+	float3x3 invTBNMatrix = inverse(float3x3(tangent, biTangent, normal));
+
+	// Calculate the light and eye vector
+	pos = mul(modelMatrix, pos);
+	float4 lightVec = lightPosition - pos;
+	float4 eyeVec = eyePosition - pos;
+
+	oLightVector = mul(invTBNMatrix, lightVec.xyz);
+	oEyeVector = mul(invTBNMatrix, eyeVec.xyz);
+
+	// Send texture coordinates to fragment shader
+	oTexCoord = texCoord.xy;
+}
+
+void TransparencyStageFP(
+			float2 texCoord		: TEXCOORD0,
+			float3 lightVector	: TEXCOORD1,
+			float3 eyeVector	: TEXCOORD2,
+		out float4 oFinalColor	: COLOR0,
+	uniform sampler2D normalTex,
+	uniform sampler2D colorTex,
+	uniform float radius,
+	uniform float3 lightColor,
+	uniform float3 diffuse,
+	uniform float3 specular,
+	uniform float3 ambient,
+	uniform float shinyness,
+	uniform float opacity
+	)
+{
+	float3 textureColor = tex2D(colorTex,texCoord).rgb;				// Get diffuse color from texture
+	float3 normal = 2.0f * (tex2D(normalTex, texCoord).rgb - 0.5f);	// Get tangent space normal
+
+	float dist = length(lightVector);						// Distance to light
+	//dist = dist * dist;									// Use inverse square for distance attenuation
+	lightVector = normalize(lightVector);					// Normalize light vector
+
+	// Intensity of diffuse light
+	// Saturate to keep within the 0 - 1 range
+	// Dot product of light direction and surfance normal
+	float i = saturate(dot(lightVector,normal));	
+	
+	float att = saturate(1.0 - dist/radius);	
+
+	// Calculate diffuse light factor in texture color, light color and attenuation
+	float3 illDiffuse = i * textureColor * lightColor * att;
+	
+	float3 h = normalize(lightVector + eyeVector);
+	
+	i = pow(saturate(dot(normal, h)), shinyness);
+
+	float3 illSpecular = i * specular * lightColor * att;
+
+	oFinalColor = float4(ambient * textureColor + illDiffuse + illSpecular, opacity);
+
+	// Attenuation
+	//float att = saturate(1.0 - length(lightVector)/radius);
+
+	//lightVector = normalize(lightVector);
+	//eyeVector = normalize(eyeVector);
+	//float3 halfVector = normalize(lightVector + eyeVector);
+
+	//float3 normal = 2.0f * (tex2D(normalTex, texCoord).rgb - 0.5f);
+
+	// Calculate diffuse and specular illumination
+	//float3 illDiff = saturate(dot(lightVector,normal))*color*lightColor;
+	//float3 illSpec = pow(saturate(dot(halfVector,normal)),shinyness)*specular*lightColor;
+
+	// Calculate final color
+	//float3 finalColor = att*(illDiff + illSpec);
+	//oFinalColor = float4(finalColor, opacity);
+}
